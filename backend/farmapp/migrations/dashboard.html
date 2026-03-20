@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart Farm Dashboard</title>
+</head>
+<body>
+    <h1>Crop Disease Dashboard</h1>
+
+    <table border="1">
+        <tr>
+            <th>Temp</th>
+            <th>Humidity</th>
+            <th>Soil</th>
+            <th>Leaf</th>
+            <th>Light</th>
+            <th>Risk</th>
+            <th>Time</th>
+        </tr>
+
+        {% for d in data %}
+        <tr>
+            <td>{{ d.temperature }}</td>
+            <td>{{ d.humidity }}</td>
+            <td>{{ d.soil_moisture }}</td>
+            <td>{{ d.leaf_wetness }}</td>
+            <td>{{ d.light_intensity }}</td>
+            <td style="color:red">{{ d.risk }}</td>
+            <td>{{ d.timestamp }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
