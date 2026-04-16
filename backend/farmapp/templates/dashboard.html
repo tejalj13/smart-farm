@@ -300,7 +300,7 @@
         }
 
         function fetchData() {
-            fetch('/api/data/')
+            fetch('/api/sensor-data/')
                 .then(res => res.json())
                 .then(data => {
                     rawData = data.reverse();
