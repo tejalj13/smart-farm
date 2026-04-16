@@ -1,7 +1,8 @@
 from django.urls import path
-from .views import receive_data, dashboard
+from . import views
 
 urlpatterns = [
-    path('api/sensor-data/', receive_data),
-    path('', dashboard),
+    path('api/sensor-data/', views.receive_data),
+    path('', views.dashboard),
+    path('api/data/', views.get_sensor_data),
 ]

@@ -2,143 +2,315 @@
 <html>
 
 <head>
-    <title>Crop Disease Dashboard</title>
+    <title>Smart Farm Dashboard</title>
 
-    <meta http-equiv="refresh" content="5">
-
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         body {
-            font-family: Arial;
-            padding: 20px;
-            background-color: #f5f5f5;
+            font-family: 'Segoe UI';
+            margin: 0;
+            background: #eef2f7;
         }
 
-        h1 {
-            color: #2c3e50;
+        .container {
+            padding: 20px 40px;
+        }
+
+        .subtitle {
+            color: gray;
+            margin-bottom: 20px;
+        }
+
+        .risk-badge {
+            padding: 15px;
+            border-radius: 10px;
+            color: white;
+            font-size: 20px;
+            margin-bottom: 20px;
+            width: fit-content;
+        }
+
+        .HIGH {
+            background: #e74c3c;
+        }
+
+        .MEDIUM {
+            background: #f39c12;
+        }
+
+        .LOW {
+            background: #27ae60;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .value {
+            font-size: 22px;
+            font-weight: bold;
         }
 
         table {
-            border-collapse: collapse;
             width: 100%;
-            margin-bottom: 30px;
+            border-collapse: collapse;
             background: white;
-        }
-
-        th,
-        td {
-            border: 1px solid #ccc;
-            padding: 8px;
-            text-align: center;
         }
 
         th {
             background: #2c3e50;
             color: white;
+            padding: 10px;
         }
 
-        .risk-high {
-            color: red;
-            font-weight: bold;
+        td {
+            padding: 8px;
+            text-align: center;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        .filters button {
+            padding: 6px 12px;
+            margin-right: 5px;
+            border: none;
+            background: #2c3e50;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .filters .active {
+            background: #27ae60;
         }
 
         .charts {
-            display: flex;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
             gap: 20px;
-            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .chart-box {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
         }
 
         canvas {
-            background: white;
-            padding: 10px;
-            border: 1px solid #ccc;
-            width: 48%;
-            height: 300px;
+            height: 260px !important;
         }
     </style>
 </head>
 
 <body>
 
-    <h1>Crop Disease Dashboard</h1>
+    <div class="container">
 
-    <h2>Sensor Data</h2>
+        <h1>Smart Farm Monitoring</h1>
+        <div class="subtitle">Tomato Field - Section A</div>
 
-    <table>
-        <tr>
-            <th>Temp</th>
-            <th>Humidity</th>
-            <th>Soil</th>
-            <th>Leaf</th>
-            <th>Light</th>
-            <th>Risk</th>
-            <th>Time</th>
-        </tr>
+        <div id="riskBadge" class="risk-badge LOW">Current Risk: LOW</div>
 
-        {% for d in data %}
-        <tr>
-            <td>{{ d.temperature }}</td>
-            <td>{{ d.humidity }}</td>
-            <td>{{ d.soil_moisture }}</td>
-            <td>{{ d.leaf_wetness }}</td>
-            <td>{{ d.light_intensity }}</td>
-            <td class="risk-high">{{ d.risk }}</td>
-            <td>{{ d.timestamp|date:'H:i:s' }}</td>
-        </tr>
-        {% endfor %}
-    </table>
+        <div class="cards">
+            <div class="card">
+                <h4>Temperature (°C)</h4>
+                <div id="tempVal" class="value"></div>
+            </div>
+            <div class="card">
+                <h4>Humidity (%)</h4>
+                <div id="humVal" class="value"></div>
+            </div>
+            <div class="card">
+                <h4>Soil Moisture (%)</h4>
+                <div id="soilVal" class="value"></div>
+            </div>
+            <div class="card">
+                <h4>Leaf Wetness (%)</h4>
+                <div id="leafVal" class="value"></div>
+            </div>
+            <div class="card">
+                <h4>Light Intensity (lux)</h4>
+                <div id="lightVal" class="value"></div>
+            </div>
+        </div>
 
-    <div class="charts">
-        <canvas id="tempChart"></canvas>
-        <canvas id="humidityChart"></canvas>
+        <h3>Sensor History</h3>
+        <table id="dataTable">
+            <thead>
+                <tr>
+                    <th>Temperature (°C)</th>
+                    <th>Humidity (%)</th>
+                    <th>Soil Moisture (%)</th>
+                    <th>Leaf Wetness (%)</th>
+                    <th>Light Intensity (lux)</th>
+                    <th>Risk</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <div style="margin-top:10px;">
+            <button onclick="prevPage()">Previous</button>
+            <span id="pageInfo">Page 1</span>
+            <button onclick="nextPage()">Next</button>
+        </div>
+
+        <div class="filters" style="margin-top:15px;">
+            <button onclick="setRange(10,this)" class="active">1 Hour</button>
+            <button onclick="setRange(50,this)">1 Week</button>
+            <button onclick="setRange(100,this)">1 Month</button>
+        </div>
+
+        <div class="charts">
+            <div class="chart-box">
+                <canvas id="tempChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <canvas id="riskChart"></canvas>
+            </div>
+        </div>
+
     </div>
 
-    <!-- SAFE JSON DATA -->
-    <script id="data-json" type="application/json">
-    {{ data_json|safe }}
-</script>
-
     <script>
-        window.onload = function () {
+        let rawData = [];
+        let currentLimit = 10;
+        let currentPage = 1;
+        const rowsPerPage = 15;
+        let tempChart, riskChart;
 
-            const rawData = JSON.parse(document.getElementById('data-json').textContent);
+        function setRange(limit, btn) {
+            currentLimit = limit;
+            document.querySelectorAll(".filters button").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            updateUI();
+        }
 
-            console.log("DATA:", rawData);
+        function updateUI() {
 
-            if (!rawData || rawData.length === 0) {
-                alert("No data available");
-                return;
+            const data = rawData.slice(-currentLimit);
+            if (!data.length) return;
+
+            const latest = data[data.length - 1];
+
+            document.getElementById("tempVal").innerText = latest.temperature.toFixed(2) + " °C";
+            document.getElementById("humVal").innerText = latest.humidity.toFixed(2) + " %";
+            document.getElementById("soilVal").innerText = latest.soil_moisture.toFixed(2) + " %";
+            document.getElementById("leafVal").innerText = latest.leaf_wetness.toFixed(2) + " %";
+            document.getElementById("lightVal").innerText = latest.light_intensity.toFixed(0) + " lux";
+
+            const badge = document.getElementById("riskBadge");
+            badge.className = "risk-badge " + latest.risk;
+            badge.innerText = "Current Risk: " + latest.risk;
+
+            const start = (currentPage - 1) * rowsPerPage;
+            const paginatedData = rawData.slice().reverse().slice(start, start + rowsPerPage);
+
+            const tbody = document.querySelector("#dataTable tbody");
+            tbody.innerHTML = "";
+
+            paginatedData.forEach(d => {
+                tbody.innerHTML += `
+        <tr>
+            <td>${d.temperature.toFixed(2)}</td>
+            <td>${d.humidity.toFixed(2)}</td>
+            <td>${d.soil_moisture.toFixed(2)}</td>
+            <td>${d.leaf_wetness.toFixed(2)}</td>
+            <td>${d.light_intensity.toFixed(0)}</td>
+            <td><b>${d.risk}</b></td>
+            <td>${new Date(d.timestamp).toLocaleTimeString()}</td>
+        </tr>`;
+            });
+
+            document.getElementById("pageInfo").innerText = "Page " + currentPage;
+
+            const labels = data.map(d => new Date(d.timestamp).toLocaleTimeString());
+            const temps = data.map(d => d.temperature);
+
+            const riskMap = { LOW: 1, MEDIUM: 2, HIGH: 3 };
+            const risks = data.map(d => riskMap[d.risk]);
+
+            if (tempChart) tempChart.destroy();
+            if (riskChart) riskChart.destroy();
+
+            tempChart = new Chart(document.getElementById("tempChart"), {
+                type: "line",
+                data: {
+                    labels: labels,
+                    datasets: [{ label: "Temperature (°C)", data: temps, tension: 0.4 }]
+                },
+                options: {
+                    scales: {
+                        x: { title: { display: true, text: "Time" } },
+                        y: { title: { display: true, text: "Temperature (°C)" } }
+                    }
+                }
+            });
+
+            riskChart = new Chart(document.getElementById("riskChart"), {
+                type: "line",
+                data: {
+                    labels: labels,
+                    datasets: [{ label: "Risk Level", data: risks, tension: 0.4 }]
+                },
+                options: {
+                    scales: {
+                        x: { title: { display: true, text: "Time" } },
+                        y: {
+                            title: { display: true, text: "Risk Level" },
+                            ticks: {
+                                callback: function (value) {
+                                    return ["", "LOW", "MEDIUM", "HIGH"][value];
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function nextPage() {
+            const totalPages = Math.ceil(rawData.length / rowsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                updateUI();
             }
+        }
 
-            const labels = rawData.map(d => new Date(d.timestamp).toLocaleTimeString());
-            const temps = rawData.map(d => Number(d.temperature));
-            const humidity = rawData.map(d => Number(d.humidity));
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                updateUI();
+            }
+        }
 
-            new Chart(document.getElementById("tempChart"), {
-                type: "bar",
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: "Temperature",
-                        data: temps
-                    }]
-                }
-            });
+        function fetchData() {
+            fetch('/api/data/')
+                .then(res => res.json())
+                .then(data => {
+                    rawData = data.reverse();
+                    updateUI();
+                });
+        }
 
-            new Chart(document.getElementById("humidityChart"), {
-                type: "bar",
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: "Humidity",
-                        data: humidity
-                    }]
-                }
-            });
+        fetchData();
+        setInterval(fetchData, 5000);
 
-        };
     </script>
 
 </body>

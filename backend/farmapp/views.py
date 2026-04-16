@@ -6,6 +6,12 @@ from .models import SensorData
 import json
 from django.core.serializers.json import DjangoJSONEncoder
 from .models import SensorData
+from django.http import JsonResponse
+
+
+def get_sensor_data(request):
+    data = list(SensorData.objects.all().order_by('-timestamp')[:50].values())
+    return JsonResponse(data, safe=False)
 
 
 def dashboard(request):
