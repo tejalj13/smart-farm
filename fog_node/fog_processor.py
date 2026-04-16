@@ -1,33 +1,86 @@
-from flask import Flask, request, jsonify
-import requests
+import json
+import time
+from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
 
-app = Flask(__name__)
+# 📁 Path to shared sensor file
+FILE = "../sensor_simulator/sensor_data.json"
 
-BACKEND_URL = "http://127.0.0.1:8080/api/sensor-data/"
+# 🔐 AWS IoT Config
+ENDPOINT = "ay9h3u8xtlcgi-ats.iot.us-east-1.amazonaws.com"
 
+ROOT_CA = "AmazonRootCA1.pem"
+PRIVATE_KEY = "fa5499b69acb5356b7a60500db1e50e43305a4815368a0bea12998b3b347e2b0-private.pem.key"
+CERTIFICATE = "fa5499b69acb5356b7a60500db1e50e43305a4815368a0bea12998b3b347e2b0-certificate.pem.crt"
 
-def detect_disease_risk(data):
-    return True   # 👈 TEMP: send all data
+TOPIC = "smartfarm/sensors"
 
+# 🧠 Required fields
+REQUIRED_FIELDS = [
+    "temperature",
+    "humidity",
+    "soil_moisture",
+    "leaf_wetness",
+    "light_intensity"
+]
 
-@app.route('/data', methods=['POST'])
-def process_data():
-    data = request.json
-
-    print("Received at fog:", data)
-
-    if detect_disease_risk(data):
-        print("Sending to backend:", data)
-
-        requests.post(BACKEND_URL, json={
-            **data,
-            "risk": "HIGH"
-        })
-    else:
-        print("Normal data ignored")
-
-    return jsonify({"status": "processed"})
+# 🔥 Risk Logic
 
 
-if __name__ == '__main__':
-    app.run(port=5000)
+def detect_risk(data):
+    if data["humidity"] > 80 and data["leaf_wetness"] > 0.7:
+        return "HIGH"
+    elif data["humidity"] > 60:
+        return "MEDIUM"
+    return "LOW"
+
+
+# 🚀 MQTT Client Setup
+client = AWSIoTMQTTClient("smartFarmClient")
+
+client.configureEndpoint(ENDPOINT, 8883)
+
+client.configureCredentials(
+    ROOT_CA,
+    PRIVATE_KEY,
+    CERTIFICATE
+)
+
+# 🔧 Improve stability (IMPORTANT)
+client.configureOfflinePublishQueueing(-1)
+client.configureDrainingFrequency(2)
+client.configureConnectDisconnectTimeout(10)
+client.configureMQTTOperationTimeout(5)
+
+print("Connecting to AWS IoT...")
+client.connect()
+print("Connected to AWS IoT")
+
+# 🔄 Main Loop
+while True:
+    try:
+        with open(FILE, "r") as f:
+            data = json.load(f)
+    except Exception as e:
+        print("Waiting for sensor data...")
+        time.sleep(2)
+        continue
+
+    # 🚨 Ensure all sensor values are present
+    if not all(key in data for key in REQUIRED_FIELDS):
+        print("Incomplete data, skipping...")
+        time.sleep(2)
+        continue
+
+    # 🧠 Add risk
+    data["risk"] = detect_risk(data)
+
+    print("Fog sending:", data)
+
+    try:
+        client.publish(TOPIC, json.dumps(data), 1)
+        print("Sent successfully")
+    except Exception as e:
+        print("Publish failed:", str(e))
+
+    # ⏱️ Slow down to avoid timeout
+    time.sleep(5)

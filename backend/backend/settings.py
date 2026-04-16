@@ -28,7 +28,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-
+CSRF_TRUSTED_ORIGINS = [
+    "http://fogedge-env-01.eba-ax3my3av.us-east-1.elasticbeanstalk.com/"
+]
 # Application definition
 
 INSTALLED_APPS = [
