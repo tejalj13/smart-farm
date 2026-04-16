@@ -1,19 +1,24 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import SensorData
 from django.shortcuts import render
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.permissions import AllowAny
+from rest_framework.decorators import permission_classes
+
 from .models import SensorData
+
 import json
 from django.core.serializers.json import DjangoJSONEncoder
-from .models import SensorData
-from django.http import JsonResponse
 
 
+# API to fetch data (used by dashboard AJAX)
 def get_sensor_data(request):
     data = list(SensorData.objects.all().order_by('-timestamp')[:50].values())
     return JsonResponse(data, safe=False)
 
 
+# Dashboard page
 def dashboard(request):
     data = SensorData.objects.all().order_by('-timestamp')[:20]
 
@@ -25,17 +30,20 @@ def dashboard(request):
     })
 
 
+# CSRF disabled for Lambda
+@csrf_exempt
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def receive_data(request):
     data = request.data
 
     SensorData.objects.create(
-        temperature=data["temperature"],
-        humidity=data["humidity"],
-        soil_moisture=data["soil_moisture"],
-        leaf_wetness=data["leaf_wetness"],
-        light_intensity=data["light_intensity"],
-        risk=data["risk"]
+        temperature=data.get("temperature"),
+        humidity=data.get("humidity"),
+        soil_moisture=data.get("soil_moisture"),
+        leaf_wetness=data.get("leaf_wetness"),
+        light_intensity=data.get("light_intensity"),
+        risk=data.get("risk", "LOW")
     )
 
     return Response({"message": "Data saved"})
