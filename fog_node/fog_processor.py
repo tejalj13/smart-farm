@@ -2,10 +2,10 @@ import json
 import time
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
 
-# 📁 Path to shared sensor file
+
 FILE = "../sensor_simulator/sensor_data.json"
 
-# 🔐 AWS IoT Config
+# AWS IoT Config
 ENDPOINT = "ay9h3u8xtlcgi-ats.iot.us-east-1.amazonaws.com"
 
 ROOT_CA = "AmazonRootCA1.pem"
@@ -14,7 +14,6 @@ CERTIFICATE = "fa5499b69acb5356b7a60500db1e50e43305a4815368a0bea12998b3b347e2b0-
 
 TOPIC = "smartfarm/sensors"
 
-# 🧠 Required fields
 REQUIRED_FIELDS = [
     "temperature",
     "humidity",
@@ -23,18 +22,26 @@ REQUIRED_FIELDS = [
     "light_intensity"
 ]
 
-# 🔥 Risk Logic
-
 
 def detect_risk(data):
-    if data["humidity"] > 80 and data["leaf_wetness"] > 0.7:
+    temp = data["temperature"]
+    humidity = data["humidity"]
+    leaf = data["leaf_wetness"]
+    soil = data["soil_moisture"]
+    light = data["light_intensity"]
+
+    # HIGH RISK
+    if humidity > 80 and leaf > 0.7 and 20 < temp < 30:
         return "HIGH"
-    elif data["humidity"] > 60:
+
+    # MEDIUM RISK
+    elif humidity > 60 and (leaf > 0.5 or soil > 70 or light < 300):
         return "MEDIUM"
+
+    # LOW RISK
     return "LOW"
 
 
-# 🚀 MQTT Client Setup
 client = AWSIoTMQTTClient("smartFarmClient")
 
 client.configureEndpoint(ENDPOINT, 8883)
@@ -45,7 +52,7 @@ client.configureCredentials(
     CERTIFICATE
 )
 
-# 🔧 Improve stability (IMPORTANT)
+
 client.configureOfflinePublishQueueing(-1)
 client.configureDrainingFrequency(2)
 client.configureConnectDisconnectTimeout(10)
@@ -55,7 +62,7 @@ print("Connecting to AWS IoT...")
 client.connect()
 print("Connected to AWS IoT")
 
-# 🔄 Main Loop
+
 while True:
     try:
         with open(FILE, "r") as f:
@@ -65,13 +72,11 @@ while True:
         time.sleep(2)
         continue
 
-    # 🚨 Ensure all sensor values are present
     if not all(key in data for key in REQUIRED_FIELDS):
         print("Incomplete data, skipping...")
         time.sleep(2)
         continue
 
-    # 🧠 Add risk
     data["risk"] = detect_risk(data)
 
     print("Fog sending:", data)
@@ -82,5 +87,4 @@ while True:
     except Exception as e:
         print("Publish failed:", str(e))
 
-    # ⏱️ Slow down to avoid timeout
     time.sleep(5)

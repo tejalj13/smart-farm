@@ -1,7 +1,7 @@
 import json
 import time
 import random
-# temp
+
 FILE = "sensor_data.json"
 
 while True:
