@@ -31,7 +31,7 @@ def detect_risk(data):
     light = data["light_intensity"]
 
     # HIGH RISK
-    if humidity > 80 and leaf > 0.7 and 20 < temp < 30:
+    if humidity > 80 and leaf > 0.7 and 20 < temp < 40:
         return "HIGH"
 
     # MEDIUM RISK
